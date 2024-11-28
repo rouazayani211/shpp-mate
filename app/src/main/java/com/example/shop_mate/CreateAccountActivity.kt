@@ -1,6 +1,7 @@
 package com.example.shop_mate
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
@@ -9,6 +10,11 @@ import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
+import okhttp3.RequestBody.Companion.asRequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import retrofit2.HttpException
 import java.io.IOException
 
@@ -22,12 +28,10 @@ class CreateAccountActivity : ComponentActivity() {
         setContent {
             MaterialTheme {
                 CreateAccountScreen(
-                    onSignInClick = { nom, prenom, email, password ->
-                        // Trigger createAccount when the "Sign Up" button is clicked
-                        createAccount(nom, prenom, email, password)
+                    onSignInClick = { nom, prenom, email, password, imageProfileUri ->
+                        createAccount(nom, prenom, email, password, imageProfileUri)
                     },
                     onNavigateToLogin = {
-                        // Navigate to LoginActivity
                         val intent = Intent(this, LoginActivity::class.java)
                         startActivity(intent)
                         finish()
@@ -35,45 +39,66 @@ class CreateAccountActivity : ComponentActivity() {
                 )
             }
         }
-
     }
 
-    private fun createAccount(nom: String, prenom: String, email: String, password: String) {
+    private fun createAccount(
+        nom: String,
+        prenom: String,
+        email: String,
+        password: String,
+        imageProfileUri: Uri?
+    ) {
         lifecycleScope.launch {
-            val api = RetrofitInstance.api
-            val createUserRequest = CreateUserRequest(nom, prenom, email, password)
-
             try {
-                val response = api.createAccount(createUserRequest)
+                val api = RetrofitInstance.userApi
 
-                // Log the HTTP status code and the raw response body
-                Log.d(TAG, "createAccount: Status Code = ${response.code()}")
-                Log.d(TAG, "createAccount: Response Body = ${response.body()}")
+                // Prepare the image for upload
+                val imagePart = if (imageProfileUri != null) {
+                    val fileName = imageProfileUri.lastPathSegment ?: "profile_image.jpg"
+                    val inputStream = contentResolver.openInputStream(imageProfileUri)
+                    val imageBytes = inputStream?.readBytes()
+                    val requestBody = imageBytes?.toRequestBody("image/*".toMediaTypeOrNull())
+                    MultipartBody.Part.createFormData("file", fileName, requestBody!!)
+                } else null
 
-                if (response.isSuccessful && response.body()?.success == true) {
-                    Log.d(TAG, "createAccount: Account created successfully")
-                    Toast.makeText(this@CreateAccountActivity, "Account created successfully!", Toast.LENGTH_SHORT).show()
-                    // Navigate to LoginActivity
-                    val intent = Intent(this@CreateAccountActivity, LoginActivity::class.java)
-                    startActivity(intent)
+                // Call the API with the multipart data
+                val response = if (imagePart != null) {
+                    api.createAccountWithImage(
+                        nom.toRequestBody("text/plain".toMediaTypeOrNull()),
+                        prenom.toRequestBody("text/plain".toMediaTypeOrNull()),
+                        email.toRequestBody("text/plain".toMediaTypeOrNull()),
+                        password.toRequestBody("text/plain".toMediaTypeOrNull()),
+                        imagePart
+                    )
+                } else {
+                    api.createAccount(
+                        CreateUserRequest(
+                            nom = nom,
+                            prenom = prenom,
+                            email = email,
+                            password = password,
+                            imageProfile = null // No image
+                        )
+                    )
+                }
+
+                if (response.isSuccessful) {
+                    Toast.makeText(this@CreateAccountActivity, "Account created successfully! Please verify your email.", Toast.LENGTH_SHORT).show()
+                    startActivity(Intent(this@CreateAccountActivity, LoginActivity::class.java))
                     finish()
                 } else {
-                    // Log the error response and display an error message
-                    val error = response.body()?.message ?: "Failed to create account"
-                    Log.e(TAG, "createAccount: Error Response Body = ${response.errorBody()?.string()}")
+                    val error = response.errorBody()?.string() ?: "Failed to create account"
                     Toast.makeText(this@CreateAccountActivity, error, Toast.LENGTH_SHORT).show()
                 }
             } catch (e: IOException) {
-                Log.e(TAG, "createAccount: Network error - ${e.message}")
                 Toast.makeText(this@CreateAccountActivity, "Network error: ${e.message}", Toast.LENGTH_SHORT).show()
             } catch (e: HttpException) {
-                Log.e(TAG, "createAccount: HTTP error - ${e.message}")
-                Log.e(TAG, "createAccount: HTTP error code - ${e.code()}")
                 Toast.makeText(this@CreateAccountActivity, "Server error: ${e.message}", Toast.LENGTH_SHORT).show()
             } catch (e: Exception) {
-                Log.e(TAG, "createAccount: Unexpected error - ${e.message}")
                 Toast.makeText(this@CreateAccountActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         }
     }
+
+
 }

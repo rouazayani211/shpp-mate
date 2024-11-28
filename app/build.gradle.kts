@@ -41,13 +41,16 @@ android {
 }
 
 dependencies {
+    // Core and UI libraries
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
     implementation(libs.androidx.constraintlayout)
-    implementation(libs.retrofit)
-    implementation(libs.gsonConverter)
-    implementation(libs.kotlinx.coroutines.android)
+
+    // Retrofit and Coroutines
+    implementation(libs.retrofit) // Retrofit
+    implementation(libs.gsonConverter) // Gson Converter for Retrofit
+    implementation(libs.kotlinx.coroutines.android) // Coroutines
 
     // Jetpack Compose dependencies
     implementation(libs.androidx.runtime.android)
@@ -64,13 +67,27 @@ dependencies {
 
     // Hilt dependencies
     implementation(libs.hilt.android)
+    implementation(libs.firebase.firestore.ktx)
+    implementation(libs.androidx.runtime.livedata)
     kapt(libs.hilt.compiler)
 
+    // Image loading
+    implementation(libs.coil.compose) // Coil for image loading
+
+    // OkHttp logging interceptor for debugging
+    implementation("com.squareup.okhttp3:logging-interceptor:4.10.0")
+
+    // Retrofit Coroutines adapter
+
+    // Google Play Services Auth (for Google Sign-in)
+    implementation("com.google.android.gms:play-services-auth:20.7.0")
     // Test dependencies
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+    implementation ("androidx.lifecycle:lifecycle-runtime-compose:2.6.1") // Or the latest version
+    implementation ("com.auth0.android:jwtdecode:2.0.0")
 
-    implementation("com.google.android.gms:play-services-auth:20.7.0")
-
+    implementation ("androidx.navigation:navigation-compose:2.7.1")
+    implementation ("androidx.compose.material:material:1.5.1")
 }

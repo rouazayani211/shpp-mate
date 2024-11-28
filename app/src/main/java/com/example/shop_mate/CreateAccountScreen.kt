@@ -1,9 +1,13 @@
 package com.example.shop_mate
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
@@ -12,6 +16,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -19,11 +24,12 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.rememberAsyncImagePainter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateAccountScreen(
-    onSignInClick: (String, String, String, String) -> Unit = { _, _, _, _ -> },
+    onSignInClick: (String, String, String, String, Uri?) -> Unit = { _, _, _, _, _ -> },
     onNavigateToLogin: () -> Unit = {} // Default callbacks for preview
 ) {
     var nom by remember { mutableStateOf("") }
@@ -31,6 +37,14 @@ fun CreateAccountScreen(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var isPasswordVisible by remember { mutableStateOf(false) }
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+
+    // Image picker launcher
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        selectedImageUri = uri
+    }
 
     Box(
         modifier = Modifier
@@ -47,7 +61,7 @@ fun CreateAccountScreen(
                 painter = painterResource(id = R.drawable.logo), // Replace with your actual logo resource
                 contentDescription = "App Logo",
                 modifier = Modifier
-                    .size(200.dp)
+                    .size(100.dp)
                     .padding(bottom = 16.dp)
             )
 
@@ -65,6 +79,32 @@ fun CreateAccountScreen(
                 color = Color(0xFF999891),
                 style = MaterialTheme.typography.bodySmall
             )
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Image Picker
+            Box(
+                modifier = Modifier
+                    .size(120.dp)
+                    .clip(CircleShape)
+                    .background(Color.Gray.copy(alpha = 0.2f))
+                    .clickable { imagePickerLauncher.launch("image/*") },
+                contentAlignment = Alignment.Center
+            ) {
+                if (selectedImageUri != null) {
+                    Image(
+                        painter = rememberAsyncImagePainter(selectedImageUri),
+                        contentDescription = "Selected Profile Picture",
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    Text(
+                        text = "Upload Image",
+                        color = Color.Black,
+                        fontSize = 14.sp
+                    )
+                }
+            }
+
             Spacer(modifier = Modifier.height(24.dp))
 
             // Input Fields
@@ -139,7 +179,9 @@ fun CreateAccountScreen(
 
             // Sign Up Button
             Button(
-                onClick = { onSignInClick(nom, prenom, email, password) },
+                onClick = {
+                    onSignInClick(nom, prenom, email, password, selectedImageUri)
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp),
@@ -151,6 +193,7 @@ fun CreateAccountScreen(
             ) {
                 Text(text = "Sign Up", fontSize = 18.sp)
             }
+
 
             Spacer(modifier = Modifier.height(16.dp))
 

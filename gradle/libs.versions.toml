@@ -13,7 +13,6 @@ runtimeAndroid = "1.7.5"
 uiToolingPreviewAndroid = "1.7.5"
 retrofit = "2.9.0"
 gsonConverter = "2.9.0"
-coroutines = "1.6.0"
 lifecycleKtx = "2.5.1"
 composeFoundation = "1.5.0"
 composeMaterial3 = "1.1.0-alpha06"
@@ -22,7 +21,12 @@ composeUi = "1.0.5"
 composeIcons = "1.5.0"
 composeUiTooling = "1.5.0"
 hilt = "2.44"
-hiltNavigationCompose = "1.0.0"
+okhttp = "4.10.0"
+coroutines = "1.6.4"
+coil = "2.2.2"
+firebaseFirestoreKtx = "25.1.1"
+runtimeLivedata = "1.7.5"
+
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -37,19 +41,23 @@ retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = 
 gsonConverter = { group = "com.squareup.retrofit2", name = "converter-gson", version.ref = "gsonConverter" }
 androidx-runtime-android = { group = "androidx.compose.runtime", name = "runtime", version.ref = "runtimeAndroid" }
 androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview", version.ref = "uiToolingPreviewAndroid" }
-kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
 androidx-lifecycle-viewmodel-ktx = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-ktx", version.ref = "lifecycleKtx" }
 androidx-compose-foundation = { group = "androidx.compose.foundation", name = "foundation", version.ref = "composeFoundation" }
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "composeMaterial3" }
 androidx-compose-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics", version.ref = "composeUiGraphics" }
 androidx-compose-ui = { group = "androidx.compose.ui", name = "ui", version.ref = "composeUi" }
 androidx-compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling", version.ref = "composeUiTooling" }
-androidx-compose-material = { group = "androidx.compose.material", name = "material", version.ref = "composeUi" }
 androidx-compose-foundation-layout = { group = "androidx.compose.foundation", name = "foundation-layout", version.ref = "composeUi" }
 androidx-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended", version.ref = "composeIcons" }
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
 hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hilt" }
-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
+okhttpLoggingInterceptor = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "okhttp" }
+kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
+coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
+firebase-firestore-ktx = { group = "com.google.firebase", name = "firebase-firestore-ktx", version.ref = "firebaseFirestoreKtx" }
+androidx-runtime-livedata = { group = "androidx.compose.runtime", name = "runtime-livedata", version.ref = "runtimeLivedata" }
+
+
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

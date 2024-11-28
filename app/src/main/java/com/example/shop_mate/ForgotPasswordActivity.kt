@@ -27,7 +27,7 @@ class ForgotPasswordActivity : ComponentActivity() {
     private fun sendResetCode(email: String) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val response = RetrofitInstance.api.forgotPassword(
+                val response = RetrofitInstance.userApi.forgotPassword(
                     ForgotPasswordRequest(email)
                 )
                 runOnUiThread {

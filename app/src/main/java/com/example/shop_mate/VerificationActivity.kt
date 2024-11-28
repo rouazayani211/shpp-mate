@@ -17,72 +17,61 @@ class VerificationActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val email = intent.getStringExtra("email") ?: "" // Retrieve the email from ForgotPasswordActivity
+        val email = intent.getStringExtra("email") ?: ""
+
+        if (email.isBlank()) {
+            showToast("Email is missing. Please try again.")
+            finish()
+            return
+        }
 
         setContent {
             MaterialTheme {
-                OTPVerificationScreen { verificationCode ->
-                    if (verificationCode.isBlank()) {
-                        Toast.makeText(
-                            this,
-                            "Please enter a valid verification code.",
-                            Toast.LENGTH_SHORT
-                        ).show()
+                OTPVerificationScreen { resetToken, newPassword ->
+                    if (resetToken.isBlank() || newPassword.isBlank()) {
+                        showToast("Both reset token and new password are required.")
                     } else {
-                        verifyCode(email, verificationCode)
+                        resetPassword(resetToken, newPassword)
                     }
                 }
             }
         }
     }
 
-    private fun verifyCode(email: String, verificationCode: String) {
+    private fun resetPassword(resetToken: String, newPassword: String) {
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                val response = RetrofitInstance.api.verifyResetCode(
-                    VerifyResetCodeRequest(email, verificationCode)
+                Log.d("VerificationActivity", "Resetting password with token: $resetToken")
+
+                val resetResponse = RetrofitInstance.userApi.resetPassword(
+                    ResetPasswordRequest(resetToken = resetToken, newPassword = newPassword)
                 )
+
                 withContext(Dispatchers.Main) {
-                    if (response.isSuccessful) {
-                        val token = response.body()?.token // Extract the token
-                        Log.d("VerificationActivity", "Token received: $token")
-
-                        if (token != null) {
-                            Toast.makeText(
-                                this@VerificationActivity,
-                                "Verification successful!",
-                                Toast.LENGTH_SHORT
-                            ).show()
-
-                            // Navigate to ResetPasswordActivity
-                            val intent = Intent(this@VerificationActivity, ResetPasswordActivity::class.java)
-                            intent.putExtra("token", token) // Pass the token for reset
-                            startActivity(intent)
-                            finish()
-                        } else {
-                            Toast.makeText(
-                                this@VerificationActivity,
-                                "Token missing in the response. Try again.",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        }
+                    if (resetResponse.isSuccessful) {
+                        showToast("Password reset successful!")
+                        navigateToLogin()
                     } else {
-                        Toast.makeText(
-                            this@VerificationActivity,
-                            "Verification failed. Please try again.",
-                            Toast.LENGTH_SHORT
-                        ).show()
+                        val errorMessage = resetResponse.errorBody()?.string()
+                        showToast("Password reset failed: $errorMessage")
                     }
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(
-                        this@VerificationActivity,
-                        "An error occurred: ${e.message}",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    Log.e("VerificationActivity", "Exception occurred: ${e.message}")
+                    showToast("An error occurred: ${e.message}")
                 }
             }
         }
+    }
+
+    private fun showToast(message: String) {
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+    }
+
+    private fun navigateToLogin() {
+        val intent = Intent(this, LoginActivity::class.java)
+        startActivity(intent)
+        finish()
     }
 }
