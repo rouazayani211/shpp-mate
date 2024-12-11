@@ -21,7 +21,7 @@ class CartActivity : ComponentActivity() {
     }
 
     private fun navigateToConfirmationScreen() {
-        val intent = Intent(this, ConfirmationActivity::class.java)
-        startActivity(intent) // Navigate to the confirmation screen
+//        val intent = Intent(this, ConfirmationActivity::class.java)
+//        startActivity(intent) // Navigate to the confirmation screen
     }
 }

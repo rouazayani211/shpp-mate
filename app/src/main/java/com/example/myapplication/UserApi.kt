@@ -62,13 +62,13 @@ interface UserApi {
     @PUT("auth/update/{id}")
     suspend fun updateAccountWithImage(
         @Path("id") id: String,
-        @Part("nom") nom: RequestBody,
-        @Part("prenom") prenom: RequestBody,
-        @Part("email") email: RequestBody,
-        @Part("password") password: RequestBody?,
+        @Body user : UserData,
         @Part file: MultipartBody.Part
     ): Response<UserData>
-
+//    @Part("nom") nom: RequestBody,
+//    @Part("prenom") prenom: RequestBody,
+//    @Part("email") email: RequestBody,
+//    @Part("password") password: RequestBody?,
 
     @GET("auth/profile/{id}")
     suspend fun getUserById(@Path("id") id: String): Response<UserData>

@@ -54,6 +54,7 @@ dependencies {
     implementation(libs.androidx.runtime.livedata)
     implementation(libs.androidx.navigation.runtime.ktx)
     implementation(libs.androidx.navigation.compose)
+    implementation(libs.play.services.location)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -77,7 +78,9 @@ dependencies {
     implementation ("androidx.activity:activity-compose:1.8.0")
     implementation ("androidx.lifecycle:lifecycle-runtime-compose:2.6.2")
 
-
-
+    implementation ("org.jsoup:jsoup:1.15.3")
+    implementation ("com.google.maps.android:maps-compose:2.13.0")
+    implementation ("com.google.android.gms:play-services-maps:18.1.0")
+    implementation ("androidx.navigation:navigation-compose:2.7.2")
 
 }

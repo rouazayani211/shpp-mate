@@ -1,6 +1,7 @@
 package com.example.myapplication.Network
 
 import com.example.myapplication.ProduitApiService
+import com.example.myapplication.ScraperApiService
 import com.example.myapplication.UserApi
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -9,9 +10,9 @@ import okhttp3.logging.HttpLoggingInterceptor
 
 object RetrofitInstance {
 
-     private const val BASE_URL = "http://192.168.223.172:3000" // Localhost for Android Emulator
+     private const val BASE_URL = "http://192.168.224.172:3000" // Localhost for Android Emulator
 
-   // private const val BASE_URL = "http://192.168.41.172:3000" // Localhost for Android Emulator
+  //  private const val BASE_URL = "http://10.0.2.2:3000" // Localhost for Android Emulator
 
     private val loggingInterceptor by lazy {
         HttpLoggingInterceptor().apply {
@@ -46,6 +47,9 @@ object RetrofitInstance {
     // Product API service
     val produitApi: ProduitApiService by lazy {
         createService(ProduitApiService::class.java)
+    }
+    val api: ScraperApiService by lazy {
+        retrofit.create(ScraperApiService::class.java)
     }
 
 }

@@ -37,10 +37,12 @@ class ProfileActivity : ComponentActivity() {
     }
 
     private fun loadUserProfile() {
+        // Retrieve the user's email from SharedPreferences
         val sharedPreferences = getSharedPreferences("shop_mate_prefs", Context.MODE_PRIVATE)
         val email = sharedPreferences.getString("user_email", null)
 
         if (email.isNullOrEmpty()) {
+            // If email is not found, show a message and redirect to the login screen
             Toast.makeText(this, "User email not found. Please log in again.", Toast.LENGTH_SHORT).show()
             logoutAndNavigateToLogin()
             return
@@ -64,6 +66,7 @@ class ProfileActivity : ComponentActivity() {
     }
 
     private fun showToastAndLogout() {
+        // Show error message and log out user
         runOnUiThread {
             Toast.makeText(this@ProfileActivity, "Error fetching user data. Please log in again.", Toast.LENGTH_SHORT).show()
             logoutAndNavigateToLogin()
@@ -71,9 +74,11 @@ class ProfileActivity : ComponentActivity() {
     }
 
     private fun logoutAndNavigateToLogin() {
+        // Clear user data from SharedPreferences
         val sharedPreferences = getSharedPreferences("shop_mate_prefs", Context.MODE_PRIVATE)
         sharedPreferences.edit().clear().apply()
 
+        // Redirect to the LoginActivity
         val intent = Intent(this, LoginActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         startActivity(intent)

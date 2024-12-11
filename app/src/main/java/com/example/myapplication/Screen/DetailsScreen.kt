@@ -1,6 +1,7 @@
 package com.example.myapplication.Screen
 
 import android.content.Intent
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -38,10 +39,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.example.myapplication.Activity.CartActivity
 import com.example.myapplication.Activity.ProfileActivity
 import com.example.myapplication.Model.Produit
@@ -104,9 +105,20 @@ fun DetailsScreen(
             )
 
             // Profile Image
-            if (profileUrl != null) {
+            if (profileUrl != null && profileUrl.isNotBlank()) {
                 AsyncImage(
-                    model = profileUrl,
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(profileUrl)
+                        .crossfade(true)
+                        .listener(
+                            onError = { _, result ->
+                                Log.e("Coil", "Error loading image: ${result.throwable?.message}")
+                            },
+                            onSuccess = { _, _ ->
+                                Log.d("Coil", "Image loaded successfully")
+                            }
+                        )
+                        .build(),
                     contentDescription = "Profile Image",
                     modifier = Modifier
                         .align(Alignment.TopEnd)
@@ -119,7 +131,24 @@ fun DetailsScreen(
                         },
                     contentScale = ContentScale.Crop
                 )
+
+
+            } else {
+                Image(
+                    painter = painterResource(R.drawable.default_profile),
+                    contentDescription = "Default Profile Image",
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(end = 16.dp, top = 8.dp)
+                        .size(35.dp)
+                        .clip(CircleShape)
+                        .clickable {
+                            val intent = Intent(context, ProfileActivity::class.java)
+                            context.startActivity(intent)
+                        }
+                )
             }
+
 
         }
         Spacer(modifier = Modifier.height(25.dp))

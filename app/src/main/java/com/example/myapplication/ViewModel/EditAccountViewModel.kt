@@ -53,6 +53,7 @@ class EditAccountViewModel(application: Application) : AndroidViewModel(applicat
                     println("Payload: nom=$nom, prenom=$prenom, email=$email, password=$password")
 
                     val response = if (imageProfileUri != null) {
+                        val userData=UserData(id, nom,prenom,email,password?: "",imageProfileUri.toString())
                         val fileName = imageProfileUri.lastPathSegment ?: "profile_image.jpg"
                         val inputStream = getApplication<Application>().contentResolver.openInputStream(imageProfileUri)
                         val imageBytes = inputStream?.readBytes()
@@ -61,10 +62,7 @@ class EditAccountViewModel(application: Application) : AndroidViewModel(applicat
 
                         api.updateAccountWithImage(
                             id,
-                            nom.toRequestBody("text/plain".toMediaTypeOrNull()),
-                            prenom.toRequestBody("text/plain".toMediaTypeOrNull()),
-                            email.toRequestBody("text/plain".toMediaTypeOrNull()),
-                            password?.toRequestBody("text/plain".toMediaTypeOrNull()),
+                            user = userData,
                             imagePart
                         )
                     } else {

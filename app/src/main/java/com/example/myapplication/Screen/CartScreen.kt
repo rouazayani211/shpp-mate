@@ -125,7 +125,7 @@ fun CartScreen(
 
         // Checkout Button
         Button(
-            onClick = navigateToConfirmation, // Trigger the navigation action
+            onClick = {}, // Trigger the navigation action
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),

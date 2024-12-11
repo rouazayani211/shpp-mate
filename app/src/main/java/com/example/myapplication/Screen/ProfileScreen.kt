@@ -1,35 +1,25 @@
 package com.example.myapplication.Screen
-
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,43 +31,58 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
-import com.example.myapplication.Activity.CartActivity
-import com.example.myapplication.Activity.EditAccountActivity
-import com.example.myapplication.Activity.HomeScreenActivity
-import com.example.myapplication.Activity.LoginActivity
-import com.example.myapplication.Model.UserData
+import com.example.myapplication.Activity.*
 import com.example.myapplication.R
 import com.example.myapplication.ViewModel.UserViewModel
-
+import com.google.android.gms.maps.model.CameraPosition
+import com.google.android.gms.maps.model.LatLng
+import com.google.maps.android.compose.CameraPositionState
+import com.google.maps.android.compose.GoogleMap
+import com.google.maps.android.compose.Marker
+import com.google.maps.android.compose.Polyline
+import com.google.maps.android.compose.rememberCameraPositionState
+import com.google.maps.android.compose.rememberMarkerState
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.remember
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import androidx.core.content.ContextCompat
+import org.json.JSONArray
 
 @Composable
 fun ProfileScreen(viewModel: UserViewModel) {
     val user = viewModel.currentUser.observeAsState()
-    val context = LocalContext.current // Get the context for navigation
-    val userData = user.value // Assuming user is fetched from the ViewModel
+    val context = LocalContext.current
+    val userData = user.value
+    var showMapDialog by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF7EEE2)) // Palette color for background
+            .background(Color(0xFFF7EEE2))
     ) {
-        // Back Icon
         Icon(
-            painter = painterResource(id = R.drawable.ic_back), // Replace with your back icon drawable
+            painter = painterResource(id = R.drawable.ic_back),
             contentDescription = "Back",
-            tint = Color(0xFF5D5C56), // Icon color
+            tint = Color(0xFF5D5C56),
             modifier = Modifier
-                .align(Alignment.TopStart) // Align at top-left
+                .align(Alignment.TopStart)
                 .padding(16.dp)
                 .size(24.dp)
                 .clickable {
                     val intent = Intent(context, HomeScreenActivity::class.java)
-                    context.startActivity(intent) // Navigate back to HomeScreenActivity
+                    context.startActivity(intent)
                 }
         )
 
-        // Top-Right Edit Profile Icon
         Icon(
             painter = painterResource(id = R.drawable.ic_edit),
             contentDescription = "Edit Profile",
@@ -87,16 +92,14 @@ fun ProfileScreen(viewModel: UserViewModel) {
                 .padding(16.dp)
                 .size(24.dp)
                 .clickable {
-                    // Corrected here: use context inside composable scope
-                    val intent = Intent(context, EditAccountActivity::class.java)
                     userData?.let {
-                        intent.putExtra("userData", it)  // Pass the UserData object
+                        val intent = Intent(context, EditAccountActivity::class.java)
+                        intent.putExtra("userData", it)
                         context.startActivity(intent)
                     }
                 }
         )
 
-        // Content for the profile screen
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -116,7 +119,7 @@ fun ProfileScreen(viewModel: UserViewModel) {
                     modifier = Modifier
                         .size(200.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFFAA8F5C)), // Palette color for placeholder
+                        .background(Color(0xFFAA8F5C)),
                     contentScale = ContentScale.Crop
                 )
 
@@ -127,10 +130,10 @@ fun ProfileScreen(viewModel: UserViewModel) {
                     text = "${userData.nom} ${userData.prenom}",
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF5D5C56) // Palette text color
+                    color = Color(0xFF5D5C56)
                 )
                 Text(
-                    text = userData.email, // Display the user's email
+                    text = userData.email,
                     fontSize = 16.sp,
                     color = Color.Gray
                 )
@@ -143,34 +146,35 @@ fun ProfileScreen(viewModel: UserViewModel) {
                     horizontalAlignment = Alignment.Start
                 ) {
                     ProfileButton("Your Orders", Icons.Default.ShoppingCart, Color(0xFF5D5C56)) {
-                        val intent = Intent(context, CartActivity::class.java)
-                        context.startActivity(intent) // Navigate to CartActivity
+                        context.startActivity(Intent(context, CartActivity::class.java))
                     }
 
-                    ProfileButton("Your Favourites", Icons.Default.Favorite, Color(0xFF5D5C56)) {
-                        // Add navigation or functionality here
-                    }
+                    ProfileButton("Your Favourites", Icons.Default.Favorite, Color(0xFF5D5C56)) {}
 
-                    ProfileButton("Payment", Icons.Default.CreditCard, Color(0xFF5D5C56)) {
-                        // Add navigation or functionality here
-                    }
+                    ProfileButton("Payment", Icons.Default.Favorite, Color(0xFF5D5C56)) {}
 
-                    ProfileButton("Recommended Shops", Icons.Default.Place, Color(0xFF5D5C56)) {
-                        // Add navigation or functionality here
-                    }
+                    ProfileButton("Recommended Shops", Icons.Default.Place, Color(0xFF5D5C56)) {}
 
                     ProfileButton("Nearest Shop", Icons.Default.LocationOn, Color(0xFF5D5C56)) {
-                        // Add navigation or functionality here
+                        showMapDialog = true
                     }
 
-                    ProfileButton("Settings", Icons.Default.Settings, Color(0xFF5D5C56)) {
-                        // Add navigation or functionality here
+                    if (showMapDialog) {
+                        MapDialog(
+                            onDismiss = { showMapDialog = false },
+                            onLocationSelected = { selectedLocation ->
+                                Log.e("TAG", "Selected location: $selectedLocation")
+                                showMapDialog = false
+                            }
+                        )
                     }
+
+                    ProfileButton("Settings", Icons.Default.Settings, Color(0xFF5D5C56)) {}
                 }
 
                 Spacer(modifier = Modifier.weight(1f))
 
-                // Logout Button at the Bottom
+                // Logout Button
                 Button(
                     onClick = {
                         logoutAndNavigateToLogin(context)
@@ -183,13 +187,11 @@ fun ProfileScreen(viewModel: UserViewModel) {
                         contentColor = Color(0xFFAA8F5C)
                     ),
                     shape = RoundedCornerShape(50.dp),
-                    border = BorderStroke(1.dp, Color(0xFFAA8F5C)) // Corrected border usage
+                    border = BorderStroke(1.dp, Color(0xFFAA8F5C))
                 ) {
                     Text(text = "Log Out", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 }
-
             } else {
-                // Loading State
                 CircularProgressIndicator(color = Color(0xFFAA8F5C))
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
@@ -202,11 +204,6 @@ fun ProfileScreen(viewModel: UserViewModel) {
         }
     }
 }
-
-
-
-
-
 
 @Composable
 fun ProfileButton(
@@ -238,8 +235,6 @@ fun ProfileButton(
     }
 }
 
-
-// Logout Function
 fun logoutAndNavigateToLogin(context: Context) {
     val sharedPreferences = context.getSharedPreferences("shop_mate_prefs", Context.MODE_PRIVATE)
     sharedPreferences.edit().clear().apply()
@@ -248,3 +243,155 @@ fun logoutAndNavigateToLogin(context: Context) {
     intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
     context.startActivity(intent)
 }
+
+@Composable
+fun MapDialog(onDismiss: () -> Unit, onLocationSelected: (String) -> Unit) {
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(400.dp),
+            shape = MaterialTheme.shapes.medium,
+            color = Color.White,
+            tonalElevation = 4.dp
+        ) {
+            MapWithTextField(onLocationSelected)
+        }
+    }
+}
+
+@Composable
+fun MapWithTextField(onLocationSelected: (String) -> Unit) {
+    val context = LocalContext.current
+    val fusedLocationClient = com.google.android.gms.location.LocationServices.getFusedLocationProviderClient(context)
+    val cameraPositionState = rememberCameraPositionState()
+
+    val coroutineScope = rememberCoroutineScope()
+
+    var userLocation by remember { mutableStateOf<LatLng?>(null) }
+    var selectedLocation by remember { mutableStateOf<LatLng?>(null) }
+    var nearbyBrands by remember { mutableStateOf<List<Brand>>(emptyList()) }
+
+    // Permission launcher for requesting location permission
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+        onResult = { isGranted ->
+            if (isGranted) {
+                fetchUserLocation(fusedLocationClient, cameraPositionState) { location ->
+                    userLocation = location
+                    fetchNearbyBrands(location.latitude, location.longitude) { brands ->
+                        nearbyBrands = brands
+                    }
+                }
+            } else {
+                Log.e("MapWithTextField", "Location permission denied")
+            }
+        }
+    )
+
+    // Check and request permission
+    LaunchedEffect(Unit) {
+        when {
+            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED -> {
+                fetchUserLocation(fusedLocationClient, cameraPositionState) { location ->
+                    userLocation = location
+                    fetchNearbyBrands(location.latitude, location.longitude) { brands ->
+                        nearbyBrands = brands
+                    }
+                }
+            }
+            else -> {
+                // Request permission
+                permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+            }
+        }
+    }
+
+    GoogleMap(
+        cameraPositionState = cameraPositionState,
+        modifier = Modifier.fillMaxSize(),
+        onMapClick = { latLng ->
+            selectedLocation = latLng
+            userLocation?.let { userLoc ->
+                fetchNearbyBrands(userLoc.latitude, userLoc.longitude) { brands ->
+                    nearbyBrands = brands
+                }
+            }
+            onLocationSelected("Selected Location: ${latLng.latitude}, ${latLng.longitude}")
+        }
+    ) {
+        // Marker for user's location
+        userLocation?.let {
+            Marker(state = rememberMarkerState(position = it), title = "Your Location")
+        }
+
+        // Marker for selected location
+        selectedLocation?.let {
+            Marker(state = rememberMarkerState(position = it), title = "Selected Location")
+        }
+
+        // Display nearby brands as markers
+        nearbyBrands.forEach { brand ->
+            Marker(
+                state = rememberMarkerState(position = LatLng(brand.latitude, brand.longitude)),
+                title = brand.name
+            )
+        }
+    }
+}
+
+// Helper function to fetch user location
+@SuppressLint("MissingPermission")
+private fun fetchUserLocation(
+    fusedLocationClient: com.google.android.gms.location.FusedLocationProviderClient,
+    cameraPositionState: CameraPositionState,
+    onLocationFetched: (LatLng) -> Unit
+) {
+    fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+        if (location != null) {
+            val latLng = LatLng(location.latitude, location.longitude)
+            cameraPositionState.position = CameraPosition(latLng, 15f, 0f, 0f)
+            onLocationFetched(latLng)
+        } else {
+            Log.e("fetchUserLocation", "Unable to get location")
+        }
+    }.addOnFailureListener {
+        Log.e("fetchUserLocation", "Failed to get location", it)
+    }
+}
+
+// Helper function to fetch nearby brands from the backend
+private val client = OkHttpClient()
+
+private fun fetchNearbyBrands(lat: Double, lng: Double, onResult: (List<Brand>) -> Unit) {
+    val mockBrands = listOf(
+        Brand(name = "Mock Brand 1", latitude = lat + 0.01, longitude = lng + 0.01),
+        Brand(name = "Mock Brand 2", latitude = lat - 0.01, longitude = lng - 0.01)
+    )
+    onResult(mockBrands)
+}
+
+
+private fun parseBrands(responseBody: String?): List<Brand> {
+    return try {
+        val jsonArray = JSONArray(responseBody)
+        (0 until jsonArray.length()).map { i ->
+            val jsonObject = jsonArray.getJSONObject(i)
+            Brand(
+                name = jsonObject.getString("name"),
+                latitude = jsonObject.getDouble("latitude"),
+                longitude = jsonObject.getDouble("longitude")
+            )
+        }
+    } catch (e: Exception) {
+        Log.e("parseBrands", "Error parsing brands", e)
+        emptyList()
+    }
+}
+
+// Data class for brands
+data class Brand(
+    val name: String,
+    val latitude: Double,
+    val longitude: Double
+)

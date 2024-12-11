@@ -64,4 +64,10 @@ data class UpdateUserRequest(
     val password: String?,
     val imageProfile: String? = null
 )
+data class Brand(
+    val name: String,       // Name of the brand
+    val latitude: Double,   // Latitude of the brand location
+    val longitude: Double   // Longitude of the brand location
+)
+
 
