@@ -12,16 +12,21 @@ class CartActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // Set the content view with the CartScreen
         setContent {
             CartScreen(
-                cartItems = CartManager.cartItems,
-                navigateToConfirmation = { navigateToConfirmationScreen() } // Handle navigation
+                cartItems = CartManager.cartItems, // Pass cart items from CartManager
+                navigateToConfirmation = { navigateToPaymentScreen() } // Handle navigation
             )
         }
     }
 
-    private fun navigateToConfirmationScreen() {
-//        val intent = Intent(this, ConfirmationActivity::class.java)
-//        startActivity(intent) // Navigate to the confirmation screen
+    /**
+     * Navigate to the payment screen.
+     */
+    private fun navigateToPaymentScreen() {
+        // Navigate to PaymentActivity or any other relevant screen.
+        val intent = Intent(this, PaymentActivity::class.java)
+        startActivity(intent)
     }
 }

@@ -45,16 +45,24 @@
 
         // Load favorites from SharedPreferences
         private fun loadFavorites() {
-            val json = sharedPreferences.getString(FAVORITES_KEY, "[]")
+            val json = sharedPreferences.getString(FAVORITES_KEY, null) ?: "[]"
             val type = object : TypeToken<List<Produit>>() {}.type
-            val savedFavorites: List<Produit> = gson.fromJson(json, type)
+            val savedFavorites: List<Produit> = try {
+                gson.fromJson(json, type)
+            } catch (e: Exception) {
+                emptyList()
+            }
             favoriteItems.clear()
             favoriteItems.addAll(savedFavorites)
         }
 
+
         // Save favorites to SharedPreferences
         private fun saveFavorites() {
             val json = gson.toJson(favoriteItems)
-            sharedPreferences.edit().putString(FAVORITES_KEY, json).apply()
+            Thread {
+                sharedPreferences.edit().putString(FAVORITES_KEY, json).apply()
+            }.start()
         }
+
     }

@@ -1,35 +1,38 @@
 package com.example.myapplication.ViewModel
 
+import android.util.Log
 import androidx.compose.runtime.mutableStateOf
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.myapplication.Model.ComparisonResult
 import com.example.myapplication.Model.Produit
 import com.example.myapplication.Network.RetrofitInstance
+import com.example.myapplication.ProduitApiService
 import kotlinx.coroutines.launch
 import retrofit2.Response
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 
-class ProduitViewModel : ViewModel() {
+class ProductViewModel : ViewModel() {
+    private val _comparisonResult = MutableLiveData<ComparisonResult>()
+    val comparisonResult: LiveData<ComparisonResult> get() = _comparisonResult
 
-    // State variables for managing the product list, loading state, and error messages
-    var produits = mutableStateOf<List<Produit>>(emptyList())
-    var isLoading = mutableStateOf(false)
-    var errorMessage = mutableStateOf("")
+    private val apiService = Retrofit.Builder()
+        .baseUrl("http://192.168.7.172:3000")
+        .addConverterFactory(GsonConverterFactory.create())
+        .build()
+        .create(ProduitApiService::class.java)
 
-    // Fetch products from the backend
-    fun fetchProduits() {
+    fun getComparison(id: String) {
         viewModelScope.launch {
-            isLoading.value = true
-            try {
-                val response: Response<List<Produit>> = RetrofitInstance.produitApi.getProduits()
-                if (response.isSuccessful) {
-                    produits.value = response.body() ?: emptyList()
-                } else {
-                    errorMessage.value = "Error: ${response.code()}"
-                }
-            } catch (e: Exception) {
-                errorMessage.value = "Exception: ${e.localizedMessage}"
-            } finally {
-                isLoading.value = false
+            val response = apiService.compareProduct(id)
+            if (response.isSuccessful) {
+                _comparisonResult.value = response.body()
+            } else {
+                // Handle error
+                Log.e("ProductViewModel", "Error: ${response.message()}")
             }
         }
     }

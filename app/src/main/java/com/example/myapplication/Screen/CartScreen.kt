@@ -4,38 +4,18 @@ import android.app.Activity
 import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Divider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -45,20 +25,19 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.example.myapplication.Activity.HomeScreenActivity
-import com.example.myapplication.Model.Produit
+import com.example.myapplication.Activity.PaymentActivity
+import com.example.myapplication.Model.CartItem
 import com.example.myapplication.R
 
 val CartScreenTitleColor = Color(0xFF874F2C)
 
 @Composable
 fun CartScreen(
-    cartItems: SnapshotStateList<Pair<Produit, Pair<String, Color>>>,
-    navigateToConfirmation: () -> Unit // Added parameter for navigation
+    cartItems: SnapshotStateList<CartItem>,
+    navigateToConfirmation: () -> Unit
 ) {
     val context = LocalContext.current
     var showDialog by remember { mutableStateOf(false) }
@@ -75,18 +54,7 @@ fun CartScreen(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(
-                onClick = { (context as? Activity)?.finish() } // Navigate back
-            ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_back),
-                    contentDescription = "Back",
-                    tint = Color(0xFF5D5C56),
-                    modifier = Modifier
-                        .padding(16.dp)
-                        .size(24.dp)
-                )
-            }
+
             Spacer(modifier = Modifier.weight(1f))
             Text(
                 text = "My Cart",
@@ -99,33 +67,44 @@ fun CartScreen(
             Spacer(modifier = Modifier.weight(1f))
         }
 
-        // Cart Items
+        // Cart Items List
         LazyColumn(
             verticalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.weight(1f)
         ) {
-            itemsIndexed(cartItems) { index, (produit, details) ->
+            itemsIndexed(cartItems) { index, cartItem ->
                 CartItemRow(
-                    produit = produit,
-                    size = details.first,
-                    color = details.second,
+                    cartItem = cartItem,
+                    onQuantityChange = { newQuantity ->
+                        if (newQuantity > 0) {
+                            cartItems[index] = cartItem.copy(quantity = newQuantity)
+                        } else {
+                            itemToDeleteIndex = index
+                            showDialog = true
+                        }
+                    },
                     onDelete = {
-                        showDialog = true
                         itemToDeleteIndex = index
+                        showDialog = true
                     }
                 )
             }
         }
 
         // Summary Section
-        val totalPrice = cartItems.sumOf { it.first.prix }
-        SummarySection(totalPrice)
+        SummarySection(cartItems)
 
         Spacer(modifier = Modifier.height(16.dp))
 
         // Checkout Button
         Button(
-            onClick = {}, // Trigger the navigation action
+            onClick = {
+                val intent = Intent(context, PaymentActivity::class.java).apply {
+                    putExtra("cartItems", ArrayList(cartItems))
+                }
+                context.startActivity(intent)
+            },
+            enabled = cartItems.isNotEmpty(),
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),
@@ -133,6 +112,7 @@ fun CartScreen(
         ) {
             Text(text = "Checkout", color = Color.White, fontWeight = FontWeight.Bold)
         }
+
     }
 
     // Delete Confirmation Dialog
@@ -157,23 +137,21 @@ fun CartScreen(
         )
     }
 }
-
-
-
 @Composable
 fun CartItemRow(
-    produit: Produit,
-    size: String,
-    color: Color,
+    cartItem: CartItem,
+    onQuantityChange: (Int) -> Unit,
     onDelete: () -> Unit
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Product Image
         AsyncImage(
-            model = produit.image,
+            model = cartItem.product.image,
             contentDescription = "Product Image",
             modifier = Modifier
                 .size(80.dp)
@@ -182,18 +160,41 @@ fun CartItemRow(
 
         Spacer(modifier = Modifier.width(16.dp))
 
-        // Product Details
+        // Product Details and Quantity Selector
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = produit.nom, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-            Text(text = "$${produit.prix}")
-            Text(text = "Size: $size")
+            Text(
+                text = cartItem.product.nom,
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp
+            )
+            Text(text = "$${String.format("%.2f", cartItem.product.prix)}")
+            Text(text = "Size: ${cartItem.size}")
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(text = "Color: ")
                 Box(
                     modifier = Modifier
                         .size(16.dp)
-                        .background(color, CircleShape)
+                        .background(Color(cartItem.color), CircleShape) // Corrected usage
                 )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Quantity Selector
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                IconButton(onClick = { onQuantityChange(cartItem.quantity - 1) }) {
+                    Icon(imageVector = Icons.Default.Remove, contentDescription = "Decrease Quantity")
+                }
+                Text(
+                    text = cartItem.quantity.toString(),
+                    style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                )
+                IconButton(onClick = { onQuantityChange(cartItem.quantity + 1) }) {
+                    Icon(imageVector = Icons.Default.Add, contentDescription = "Increase Quantity")
+                }
             }
         }
 
@@ -208,15 +209,17 @@ fun CartItemRow(
     }
 }
 
+
 @Composable
-fun SummarySection(totalPrice: Double) {
+fun SummarySection(cartItems: SnapshotStateList<CartItem>) {
+    val totalPrice = cartItems.sumOf { it.product.prix * it.quantity }
     Column {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(text = "Total:", fontWeight = FontWeight.Bold)
-            Text(text = "$${totalPrice}")
+            Text(text = "$${String.format("%.2f", totalPrice)}")
         }
         Divider(color = Color.Gray, thickness = 1.dp)
         Row(
@@ -224,8 +227,7 @@ fun SummarySection(totalPrice: Double) {
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(text = "Grand Total:", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-            Text(text = "$${totalPrice}", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Text(text = "$${String.format("%.2f", totalPrice)}", fontWeight = FontWeight.Bold, fontSize = 18.sp)
         }
     }
 }
-

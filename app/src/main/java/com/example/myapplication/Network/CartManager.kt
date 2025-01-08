@@ -2,29 +2,50 @@ package com.example.myapplication.Network
 
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
-import androidx.compose.ui.graphics.Color
-import com.example.myapplication.Model.Produit
+import com.example.myapplication.Model.CartItem
+import com.example.myapplication.Network.CartManager.cartItems
+
 
 object CartManager {
-    private val _cartItems = mutableListOf<Pair<Produit, Pair<String, Color>>>()
-    val cartItems: SnapshotStateList<Pair<Produit, Pair<String, Color>>> = mutableStateListOf()
+    val cartItems: SnapshotStateList<CartItem> = mutableStateListOf()
 
-    // Function to add items to the cart
-    fun addToCart(item: Pair<Produit, Pair<String, Color>>) {
-        cartItems.add(item)
+    fun addToCart(item: CartItem) {
+        val existingIndex = cartItems.indexOfFirst {
+            it.product.id == item.product.id && it.size == item.size && it.color == item.color
+        }
+
+        if (existingIndex != -1) {
+            val existingItem = cartItems[existingIndex]
+            val updatedItem = existingItem.copy(quantity = existingItem.quantity + item.quantity)
+            cartItems[existingIndex] = updatedItem
+        } else {
+            cartItems.add(item)
+        }
     }
 
     fun removeFromCart(index: Int) {
-        if (index in _cartItems.indices) {
-            _cartItems.removeAt(index)
+        if (index in cartItems.indices) {
+            cartItems.removeAt(index)
         }
     }
 
     fun clearCart() {
-        _cartItems.clear()
+        cartItems.clear()
     }
-    fun getCartItemsNames(): List<String> {
-        return cartItems.map { it.first.nom }
+}
+
+
+fun removeFromCart(index: Int) {
+        if (index in cartItems.indices) {
+            cartItems.removeAt(index)
+        }
     }
 
-}
+    fun clearCart() {
+        cartItems.clear()
+    }
+
+    fun getCartItemsNames(): List<String> {
+        return cartItems.map { it.product.nom }
+    }
+

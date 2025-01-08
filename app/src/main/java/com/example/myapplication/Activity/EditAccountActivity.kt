@@ -59,7 +59,7 @@ class EditAccountActivity : ComponentActivity() {
                         userData = userData, // Pass the fetched user data
                         onSaveChanges = { nom, prenom, email, password, imageProfileUri ->
                             editAccountViewModel.updateUserData(
-                                id = userData?.id ?: "", // Ensure the user ID is passed
+                                id = userData?.id ?: "674eecff1ca3de3450c69d58", // Ensure the user ID is passed
                                 nom = nom,
                                 prenom = prenom,
                                 email = email,

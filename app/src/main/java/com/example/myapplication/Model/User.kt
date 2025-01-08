@@ -1,7 +1,9 @@
 package com.example.myapplication.Model
 
-import android.os.Parcel
+import androidx.compose.ui.graphics.Color // USE THIS
 import android.os.Parcelable
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateOf
 import kotlinx.parcelize.Parcelize
 import java.io.Serializable
 
@@ -17,7 +19,9 @@ data class LoginResponse(
     val success: Boolean,
     val token: String?, // Token received upon successful login
     val isEmailVerified: Boolean, // Indicates if the user's email is verified
-    val message: String? // Additional message (e.g., errors or status messages)
+    val message: String? ,// Additional message (e.g., errors or status messages)
+    val user: UserData? // Should match the API response for the logged-in user data
+
 )
 @Parcelize
 data class UserData(
@@ -57,17 +61,70 @@ data class ResetPasswordRequest(
     val resetToken: String,
     val newPassword: String
 )
-data class UpdateUserRequest(
-    val nom: String,
-    val prenom: String,
-    val email: String,
-    val password: String?,
-    val imageProfile: String? = null
-)
+
 data class Brand(
     val name: String,       // Name of the brand
     val latitude: Double,   // Latitude of the brand location
     val longitude: Double   // Longitude of the brand location
 )
+data class CartItem(
+    val product: Produit,
+    val quantity: Int,
+    val size: String,
+    val color: Int // Change type to store colors if necessary
+) : Serializable
 
+data class ComparisonResult(
+    val productName: String,
+    val userProductPrice: String,
+    val zaraProductPrice: String,
+    val userProductImage: String,
+    val zaraProductImage: String,
+    val comparisonResult: String
+)
+data class PriceComparison(
+    val productName: String,
+    val zaraProductPrice: String,
+    val competitorPrice: String,
+    val competitorName: String,
+    val userProductPrice: String,
+    val userProductImage: String,
+    val zaraProductImage: String
+)
+data class UpdateUserRequest(
+    val nom: String,
+    val prenom: String,
+    val email: String,
+    val password: String?,
+    val imageProfile: String?
+)
+
+
+
+
+
+data class AIRequest(
+    val messages: List<Message>
+)
+
+data class Message(
+    val content: String,
+    val role: String
+)
+
+data class AIResponse(
+    val candidates: List<Candidate>?
+)
+
+data class Candidate(
+    val content: Content?
+)
+
+data class Content(
+    val parts: List<Part>?
+)
+
+data class Part(
+    val text: String?
+)
 

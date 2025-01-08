@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -35,6 +36,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.example.myapplication.Activity.CartActivity
 import com.example.myapplication.Activity.DetailsActivity
 import com.example.myapplication.Activity.FavoriteActivity
 import com.example.myapplication.Activity.ProfileActivity
@@ -93,17 +95,22 @@ fun HomeScreen(
             }
 
             Icon(
-                imageVector = Icons.Default.Menu,
-                contentDescription = "Menu",
+                imageVector = Icons.Default.ShoppingCart,
+                contentDescription = "Cart",
                 modifier = Modifier
                     .align(Alignment.TopStart)
                     .padding(start = 16.dp, top = 8.dp)
                     .size(24.dp)
-                    .clickable { /* Handle menu click */ }
+                    .clickable {
+                        val intent = Intent(context, CartActivity::class.java)
+                        context.startActivity(intent)
+                    },
+                tint = Color(0xFF874F2C) // Same color as the bottom navigation bar icons
             )
 
+
             loggedInUser.imageProfile?.let { profileImage ->
-                val url = "http://192.168.223.172:3000/uploads/$profileImage"
+                val url = "http://192.168.48.172:3000/uploads/$profileImage"
                 AsyncImage(
                     model = url,
                     contentDescription = "Profile Image",
@@ -291,9 +298,11 @@ fun HomeScreen(
 
 
 
-
 @Composable
-fun ProductItem(produit: Produit, onFavoriteClick: (Produit) -> Unit = {}) {
+fun ProductItem(
+    produit: Produit,
+    onFavoriteClick: (Produit) -> Unit = {}
+) {
     val context = LocalContext.current
     val isFavorite = remember { mutableStateOf(FavoriteManager.isFavorite(produit)) }
 
@@ -315,7 +324,7 @@ fun ProductItem(produit: Produit, onFavoriteClick: (Produit) -> Unit = {}) {
                 context.startActivity(intent)
             }
     ) {
-        val url = "http://192.168.223.172:3000/uploads/${produit.image}"
+        val url = "http://192.168.48.172:3000/uploads/${produit.image}"
 
         // Product Image
         AsyncImage(
@@ -330,13 +339,11 @@ fun ProductItem(produit: Produit, onFavoriteClick: (Produit) -> Unit = {}) {
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Row for Name and Favorite Icon
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Product Name
             Text(
                 text = produit.nom,
                 style = TextStyle(
@@ -345,32 +352,31 @@ fun ProductItem(produit: Produit, onFavoriteClick: (Produit) -> Unit = {}) {
                 )
             )
 
-            // Favorite Icon
             Icon(
                 imageVector = if (isFavorite.value) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                 contentDescription = "Favorite",
-                tint = Color.Red, // Solid red for the filled heart
+                tint = Color.Red,
                 modifier = Modifier
                     .size(24.dp)
-                    . clickable {
-                    println("Favorite icon clicked for: ${produit.nom}")
-                    if (isFavorite.value) {
-                        FavoriteManager.removeFromFavorites(produit)
-                        println("isFavorite before toggle: ${isFavorite.value}")
-                    } else {
-                        FavoriteManager.addToFavorites(produit)
-                        println("isFavorite before toggle: ${isFavorite.value}")
+                    .clickable {
+                        if (isFavorite.value) {
+                            // Remove from favorites
+                            FavoriteManager.removeFromFavorites(produit)
+                            isFavorite.value = false // Update local state
+                        } else {
+                            // Add to favorites
+                            FavoriteManager.addToFavorites(produit)
+                            isFavorite.value = true // Update local state
+                        }
                     }
-                    isFavorite.value = !isFavorite.value
-                    println("isFavorite after toggle: ${isFavorite.value}")
-                }
-
             )
+
+
+
         }
 
         Spacer(modifier = Modifier.height(4.dp))
 
-        // Product Price
         Text(
             text = "$${produit.prix}",
             style = TextStyle(
@@ -380,6 +386,7 @@ fun ProductItem(produit: Produit, onFavoriteClick: (Produit) -> Unit = {}) {
         )
     }
 }
+
 
 
 

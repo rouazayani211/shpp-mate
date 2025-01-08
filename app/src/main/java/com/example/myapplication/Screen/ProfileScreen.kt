@@ -1,6 +1,5 @@
 package com.example.myapplication.Screen
 import okhttp3.OkHttpClient
-import okhttp3.Request
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
@@ -41,20 +40,14 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.CameraPositionState
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.Marker
-import com.google.maps.android.compose.Polyline
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.rememberMarkerState
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import org.json.JSONObject
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.remember
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import androidx.core.content.ContextCompat
+import com.example.myapplication.Model.PriceComparison
 import org.json.JSONArray
 
 @Composable
@@ -63,6 +56,9 @@ fun ProfileScreen(viewModel: UserViewModel) {
     val context = LocalContext.current
     val userData = user.value
     var showMapDialog by remember { mutableStateOf(false) }
+
+    // The state for showing product comparison dialog
+    var selectedBrand by remember { mutableStateOf<PriceComparison?>(null) }
 
     Box(
         modifier = Modifier
@@ -110,9 +106,8 @@ fun ProfileScreen(viewModel: UserViewModel) {
 
             if (user.value != null) {
                 val userData = user.value!!
-
                 // Profile Image
-                val url = "http://192.168.223.172:3000/uploads/${userData.imageProfile}"
+                val url = "http://192.168.48.172:3000/uploads/${userData.imageProfile}"
                 AsyncImage(
                     model = url,
                     contentDescription = "Profile Image",
@@ -156,9 +151,10 @@ fun ProfileScreen(viewModel: UserViewModel) {
                     ProfileButton("Recommended Shops", Icons.Default.Place, Color(0xFF5D5C56)) {}
 
                     ProfileButton("Nearest Shop", Icons.Default.LocationOn, Color(0xFF5D5C56)) {
-                        showMapDialog = true
+                        showMapDialog = true // Show map dialog when clicked
                     }
 
+                    // Show Map Dialog when button is clicked
                     if (showMapDialog) {
                         MapDialog(
                             onDismiss = { showMapDialog = false },
@@ -200,6 +196,63 @@ fun ProfileScreen(viewModel: UserViewModel) {
                     fontWeight = FontWeight.Bold,
                     color = Color.Gray
                 )
+            }
+        }
+    }
+
+    // Show PriceComparisonDialog when a brand is selected
+    selectedBrand?.let { comparison ->
+        PriceComparisonDialog(comparison = comparison, onDismiss = {
+            selectedBrand = null
+        })
+    }
+}
+@Composable
+fun PriceComparisonDialog(comparison: PriceComparison, onDismiss: () -> Unit) {
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(400.dp),
+            shape = MaterialTheme.shapes.medium,
+            color = Color.White,
+            tonalElevation = 4.dp
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(text = comparison.productName, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(text = "Zara Price: ${comparison.zaraProductPrice}", fontSize = 18.sp)
+                Text(text = "Competitor Price (${comparison.competitorName}): ${comparison.competitorPrice}", fontSize = 18.sp)
+                Text(text = "Your Price: ${comparison.userProductPrice}", fontSize = 18.sp)
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row {
+                    AsyncImage(
+                        model = comparison.userProductImage,
+                        contentDescription = "User Product Image",
+                        modifier = Modifier.size(100.dp)
+                    )
+                    Spacer(modifier = Modifier.width(16.dp))
+                    AsyncImage(
+                        model = comparison.zaraProductImage,
+                        contentDescription = "Zara Product Image",
+                        modifier = Modifier.size(100.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Button(
+                    onClick = { onDismiss() },
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = Color(0xFFAA8F5C)
+                    )
+                ) {
+                    Text(text = "Close", fontWeight = FontWeight.Bold)
+                }
             }
         }
     }
@@ -264,24 +317,20 @@ fun MapDialog(onDismiss: () -> Unit, onLocationSelected: (String) -> Unit) {
 fun MapWithTextField(onLocationSelected: (String) -> Unit) {
     val context = LocalContext.current
     val fusedLocationClient = com.google.android.gms.location.LocationServices.getFusedLocationProviderClient(context)
-    val cameraPositionState = rememberCameraPositionState()
-
-    val coroutineScope = rememberCoroutineScope()
+    val cameraPositionState = rememberCameraPositionState {
+        position = CameraPosition(LatLng(36.8065, 10.1815), 12f, 0f, 0f) // Par défaut, Tunis
+    }
 
     var userLocation by remember { mutableStateOf<LatLng?>(null) }
     var selectedLocation by remember { mutableStateOf<LatLng?>(null) }
-    var nearbyBrands by remember { mutableStateOf<List<Brand>>(emptyList()) }
 
-    // Permission launcher for requesting location permission
+    // Lancer la demande de permission
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
         onResult = { isGranted ->
             if (isGranted) {
                 fetchUserLocation(fusedLocationClient, cameraPositionState) { location ->
                     userLocation = location
-                    fetchNearbyBrands(location.latitude, location.longitude) { brands ->
-                        nearbyBrands = brands
-                    }
                 }
             } else {
                 Log.e("MapWithTextField", "Location permission denied")
@@ -289,21 +338,14 @@ fun MapWithTextField(onLocationSelected: (String) -> Unit) {
         }
     )
 
-    // Check and request permission
     LaunchedEffect(Unit) {
         when {
             ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED -> {
                 fetchUserLocation(fusedLocationClient, cameraPositionState) { location ->
                     userLocation = location
-                    fetchNearbyBrands(location.latitude, location.longitude) { brands ->
-                        nearbyBrands = brands
-                    }
                 }
             }
-            else -> {
-                // Request permission
-                permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-            }
+            else -> permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
         }
     }
 
@@ -312,33 +354,50 @@ fun MapWithTextField(onLocationSelected: (String) -> Unit) {
         modifier = Modifier.fillMaxSize(),
         onMapClick = { latLng ->
             selectedLocation = latLng
-            userLocation?.let { userLoc ->
-                fetchNearbyBrands(userLoc.latitude, userLoc.longitude) { brands ->
-                    nearbyBrands = brands
-                }
-            }
             onLocationSelected("Selected Location: ${latLng.latitude}, ${latLng.longitude}")
         }
     ) {
-        // Marker for user's location
+        // Marqueur pour la localisation de l'utilisateur
         userLocation?.let {
-            Marker(state = rememberMarkerState(position = it), title = "Your Location")
-        }
-
-        // Marker for selected location
-        selectedLocation?.let {
-            Marker(state = rememberMarkerState(position = it), title = "Selected Location")
-        }
-
-        // Display nearby brands as markers
-        nearbyBrands.forEach { brand ->
             Marker(
-                state = rememberMarkerState(position = LatLng(brand.latitude, brand.longitude)),
-                title = brand.name
+                state = rememberMarkerState(position = it),
+                title = "Votre position"
+            )
+        }
+
+        // Marqueurs pour les magasins Zara à Tunis
+        zaraLocations.forEach { zara ->
+            Marker(
+                state = rememberMarkerState(position = LatLng(zara.latitude, zara.longitude)),
+                title = zara.name,
+                onClick = {
+                    // Navigate to BrandComparisonActivity
+                    val intent = Intent(context, BrandComparisonActivity::class.java).apply {
+                        putExtra("brandName", zara.name)
+                        putExtra("latitude", zara.latitude)
+                        putExtra("longitude", zara.longitude)
+                    }
+                    context.startActivity(intent)
+                    true // Return true to indicate the click has been handled
+                }
+            )
+        }
+
+        // Marqueur pour la localisation sélectionnée
+        selectedLocation?.let {
+            Marker(
+                state = rememberMarkerState(position = it),
+                title = "Localisation sélectionnée"
             )
         }
     }
 }
+private val zaraLocations = listOf(
+    Brand(name = "Zara Mall of Tunis", latitude = 36.8314, longitude = 10.2414),
+    Brand(name = "Zara City Centre", latitude = 36.8575, longitude = 10.2018)
+)
+
+
 
 // Helper function to fetch user location
 @SuppressLint("MissingPermission")
@@ -364,6 +423,7 @@ private fun fetchUserLocation(
 private val client = OkHttpClient()
 
 private fun fetchNearbyBrands(lat: Double, lng: Double, onResult: (List<Brand>) -> Unit) {
+    // Mock data for nearby brands, this can be fetched from the backend later
     val mockBrands = listOf(
         Brand(name = "Mock Brand 1", latitude = lat + 0.01, longitude = lng + 0.01),
         Brand(name = "Mock Brand 2", latitude = lat - 0.01, longitude = lng - 0.01)
@@ -372,22 +432,23 @@ private fun fetchNearbyBrands(lat: Double, lng: Double, onResult: (List<Brand>) 
 }
 
 
-private fun parseBrands(responseBody: String?): List<Brand> {
-    return try {
-        val jsonArray = JSONArray(responseBody)
-        (0 until jsonArray.length()).map { i ->
-            val jsonObject = jsonArray.getJSONObject(i)
-            Brand(
-                name = jsonObject.getString("name"),
-                latitude = jsonObject.getDouble("latitude"),
-                longitude = jsonObject.getDouble("longitude")
-            )
-        }
-    } catch (e: Exception) {
-        Log.e("parseBrands", "Error parsing brands", e)
-        emptyList()
-    }
-}
+
+//private fun parseBrands(responseBody: String?): List<Brand> {
+//    return try {
+//        val jsonArray = JSONArray(responseBody)
+//        (0 until jsonArray.length()).map { i ->
+//            val jsonObject = jsonArray.getJSONObject(i)
+//            Brand(
+//                name = jsonObject.getString("name"),
+//                latitude = jsonObject.getDouble("latitude"),
+//                longitude = jsonObject.getDouble("longitude")
+//            )
+//        }
+//    } catch (e: Exception) {
+//        Log.e("parseBrands", "Error parsing brands", e)
+//        emptyList()
+//    }
+//}
 
 // Data class for brands
 data class Brand(

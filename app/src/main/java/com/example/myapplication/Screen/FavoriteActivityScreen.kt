@@ -29,7 +29,7 @@ import com.example.myapplication.Network.FavoriteManager
 import com.example.myapplication.R
 
 @Composable
-fun FavoriteActivityScreen() {
+fun FavoriteScreen() {
     val context = LocalContext.current
     val favorites by remember { derivedStateOf { FavoriteManager.favoriteItems } }
 
@@ -44,19 +44,7 @@ fun FavoriteActivityScreen() {
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                painter = painterResource(id = R.drawable.ic_back),
-                contentDescription = "Back",
-                tint = Color(0xFF5D5C56),
-                modifier = Modifier
-                    .padding(16.dp)
-                    .size(24.dp)
-                    .clickable {
-                        val intent = Intent(context, HomeScreenActivity::class.java)
-                        context.startActivity(intent)
-                        (context as? android.app.Activity)?.finish() // Close current activity
-                    }
-            )
+
             Text(
                 text = "Favorite Products",
                 style = MaterialTheme.typography.headlineMedium,
@@ -75,11 +63,7 @@ fun FavoriteActivityScreen() {
             ) {
                 Text(
                     text = "No favorite products yet.",
-                    style = TextStyle(
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = Color.Gray
-                    )
+                    style = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Medium, color = Color.Gray)
                 )
             }
         } else {
@@ -87,9 +71,9 @@ fun FavoriteActivityScreen() {
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 modifier = Modifier.fillMaxSize()
             ) {
-                items(favorites) { product ->
-                    FavoriteItemRow(produit = product) {
-                        FavoriteManager.removeFromFavorites(product) // Remove from favorites
+                items(favorites) { produit ->
+                    FavoriteItemRow(produit = produit) {
+                        FavoriteManager.removeFromFavorites(produit)
                     }
                 }
             }
@@ -111,7 +95,7 @@ fun FavoriteItemRow(produit: Produit, onDelete: () -> Unit) {
             modifier = Modifier.padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Product Image
+            // Image du produit
             AsyncImage(
                 model = produit.image,
                 contentDescription = "Product Image",
@@ -123,7 +107,7 @@ fun FavoriteItemRow(produit: Produit, onDelete: () -> Unit) {
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            // Product Details
+            // Détails du produit
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = produit.nom,
@@ -140,7 +124,7 @@ fun FavoriteItemRow(produit: Produit, onDelete: () -> Unit) {
                 )
             }
 
-            // Delete Icon
+            // Icône pour supprimer
             IconButton(onClick = onDelete) {
                 Icon(
                     imageVector = Icons.Default.Delete,

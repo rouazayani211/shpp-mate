@@ -1,7 +1,6 @@
 package com.example.myapplication.Screen
-
 import android.content.Intent
-import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -20,10 +19,13 @@ import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -34,6 +36,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -45,6 +48,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.myapplication.Activity.CartActivity
 import com.example.myapplication.Activity.ProfileActivity
+import com.example.myapplication.Model.CartItem
 import com.example.myapplication.Model.Produit
 import com.example.myapplication.Network.CartManager
 import com.example.myapplication.R
@@ -56,13 +60,14 @@ fun DetailsScreen(
     name: String,
     price: Double,
     imageUrl: String,
-    profileUrl: String?, // Profile image URL (nullable in case it's not available)
+    profileUrl: String?,
     sizes: List<String> = listOf("S", "M", "L", "XL"),
     colors: List<Color> = listOf(Color.Red, Color.Blue, Brown, Color.Green, Color.Black)
 ) {
     val context = LocalContext.current
     var selectedSize by remember { mutableStateOf("") }
     var selectedColor by remember { mutableStateOf<Color?>(null) }
+    var quantity by remember { mutableStateOf(1) } // Quantity state
 
     Column(
         modifier = Modifier
@@ -71,14 +76,14 @@ fun DetailsScreen(
     ) {
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Header Section with logo, menu, and profile image
+        // Header Section with logo and profile image
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(60.dp),
             contentAlignment = Alignment.Center
         ) {
-            // Logo centered
+            // App Logo
             Box(
                 modifier = Modifier
                     .size(75.dp)
@@ -93,32 +98,10 @@ fun DetailsScreen(
                 )
             }
 
-            // Menu Icon
-            Icon(
-                imageVector = Icons.Default.Menu,
-                contentDescription = "Menu",
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(start = 16.dp, top = 8.dp)
-                    .size(24.dp)
-                    .clickable { /* Handle menu click */ }
-            )
-
             // Profile Image
             if (profileUrl != null && profileUrl.isNotBlank()) {
                 AsyncImage(
-                    model = ImageRequest.Builder(LocalContext.current)
-                        .data(profileUrl)
-                        .crossfade(true)
-                        .listener(
-                            onError = { _, result ->
-                                Log.e("Coil", "Error loading image: ${result.throwable?.message}")
-                            },
-                            onSuccess = { _, _ ->
-                                Log.d("Coil", "Image loaded successfully")
-                            }
-                        )
-                        .build(),
+                    model = profileUrl,
                     contentDescription = "Profile Image",
                     modifier = Modifier
                         .align(Alignment.TopEnd)
@@ -131,50 +114,30 @@ fun DetailsScreen(
                         },
                     contentScale = ContentScale.Crop
                 )
-
-
-            } else {
-                Image(
-                    painter = painterResource(R.drawable.default_profile),
-                    contentDescription = "Default Profile Image",
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(end = 16.dp, top = 8.dp)
-                        .size(35.dp)
-                        .clip(CircleShape)
-                        .clickable {
-                            val intent = Intent(context, ProfileActivity::class.java)
-                            context.startActivity(intent)
-                        }
-                )
             }
-
-
         }
-        Spacer(modifier = Modifier.height(25.dp))
 
+        Spacer(modifier = Modifier.height(16.dp))
 
         // Product Image
-        Row(
+        AsyncImage(
+            model = imageUrl,
+            contentDescription = "Product Image",
             modifier = Modifier
-                .fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center // Centers the content horizontally
-        ) {
-            AsyncImage(
-                model = imageUrl,
-                contentDescription = "Product Image",
-                modifier = Modifier
-                    .height(320.dp)
-                    .background(Color.LightGray)
-            )
-        }
+                .fillMaxWidth()
+                .height(300.dp)
+                .padding(horizontal = 16.dp)
+                .clip(RoundedCornerShape(12.dp)),
+            contentScale = ContentScale.Crop
+        )
 
+        Spacer(modifier = Modifier.height(8.dp))
 
-        // Product Name and Price
+        // Product Details
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(name, style = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.Bold))
+            Text(name, fontSize = 20.sp, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(4.dp))
-            Text("$${price}", style = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.SemiBold))
+            Text("$${price}", fontSize = 18.sp, fontWeight = FontWeight.Medium)
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -238,32 +201,71 @@ fun DetailsScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        // Quantity Selector
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text("Quantity", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                IconButton(onClick = { if (quantity > 1) quantity-- }) {
+                    Icon(
+                        imageVector = Icons.Default.Remove,
+                        contentDescription = "Decrease Quantity",
+                        tint = Color.Black
+                    )
+                }
+                Text(quantity.toString(), fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                IconButton(onClick = { quantity++ }) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Increase Quantity",
+                        tint = Color.Black
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Add to Cart Button
         // Add to Cart Button
         Button(
             onClick = {
                 if (selectedSize.isNotEmpty() && selectedColor != null) {
-                    CartManager.addToCart(
-                        Produit(
-                            id = "some_unique_id", // Assign a unique id
+                    val cartItem = CartItem(
+                        product = Produit(
+                            id = "some_unique_id",
                             nom = name,
                             description = "Product Description",
                             prix = price,
                             categorie = "Product Category",
                             image = imageUrl
-                        ) to (selectedSize to selectedColor!!)
+                        ),
+                        size = selectedSize,
+                        color = selectedColor!!.toArgb(), // Convert Color to Int
+                        quantity = quantity
                     )
+                    CartManager.addToCart(cartItem)
                     context.startActivity(Intent(context, CartActivity::class.java))
+                } else {
+                    Toast.makeText(context, "Please select a size and color", Toast.LENGTH_SHORT).show()
                 }
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFFAA8F5C),
-                contentColor = Color.White
-            )
+                .padding(16.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFAA8F5C))
         ) {
-            Text("Add To Cart", style = TextStyle(fontWeight = FontWeight.Bold))
+            Text("Add To Cart", color = Color.White, fontWeight = FontWeight.Bold)
         }
+
     }
 }

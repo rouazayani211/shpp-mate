@@ -1,23 +1,23 @@
 package com.example.myapplication.Activity
 
+// Imports (already present in your code)
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -31,40 +31,67 @@ import com.example.myapplication.Model.Produit
 import com.example.myapplication.Model.UserData
 import com.example.myapplication.Network.RetrofitInstance
 import com.example.myapplication.Screen.HomeScreen
+import com.example.myapplication.Screen.MapDialog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import retrofit2.Response
 
 class HomeScreenActivity : ComponentActivity() {
 
-    // MutableState to store products, loading status, error message, and logged-in user
+    // Existing State
     private val produits = mutableStateOf<List<Produit>>(emptyList())
     private val isLoading = mutableStateOf(false)
     private val errorMessage = mutableStateOf("")
-    private val loggedInUser = mutableStateOf<UserData?>(null) // Updated to use `UserData`
+    private val loggedInUser = mutableStateOf<UserData?>(null)
+    private val showMapDialog = mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         setContent {
             val navController = rememberNavController()
+            val isFabMenuOpen = remember { mutableStateOf(false) } // State for FAB menu visibility
+
             MaterialTheme {
                 Scaffold(
-                    bottomBar = { BottomNavigationBar(navController) }
-                ) { paddingValues -> // Use paddingValues provided by Scaffold
+                    floatingActionButton = {
+                        FloatingActionMenu(
+                            isFabMenuOpen = isFabMenuOpen,
+                            onFabClick = { isFabMenuOpen.value = !isFabMenuOpen.value },
+                            onActionClick = { action ->
+                                // Handle FAB menu item actions
+                                when (action) {
+                                    "Cart" -> navigateCart()
+                                    "Profile" -> navigateprofile()
+                                    "Favorites" -> navigatefavorites()
+                                    "Maps" -> showMapDialog.value = true
+                                    "Microphone" ->  navigateToAIVoiceActivity()
+                                }
+                            }
+                        )
+                    }
+                ) { paddingValues ->
                     Box(modifier = Modifier.padding(paddingValues)) {
                         NavigationHost(navController = navController)
+
+                        if (showMapDialog.value) {
+                            MapDialog(
+                                onDismiss = { showMapDialog.value = false },  // Close the map dialog
+                                onLocationSelected = { selectedLocation ->
+                                    Log.e("TAG", "Selected location: $selectedLocation")
+                                    showMapDialog.value = false  // Close the map dialog after selection
+                                }
+                            )
+                        }
                     }
                 }
             }
         }
 
-        // Fetch the logged-in user and products when the activity is created
         fetchLoggedInUser()
         fetchProduits()
     }
 
-    // Function to fetch logged-in user details using `auth/profile`
     private fun fetchLoggedInUser() {
         val sharedPreferences = getSharedPreferences("shop_mate_prefs", MODE_PRIVATE)
         val email = sharedPreferences.getString("user_email", null)
@@ -76,14 +103,11 @@ class HomeScreenActivity : ComponentActivity() {
 
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                val userResponse: Response<UserData> =
-                    RetrofitInstance.userApi.getUserInfo(email)
-
+                val userResponse: Response<UserData> = RetrofitInstance.userApi.getUserInfo(email)
                 if (userResponse.isSuccessful) {
                     loggedInUser.value = userResponse.body()
                 } else {
-                    errorMessage.value =
-                        "Failed to fetch user: ${userResponse.code()} - ${userResponse.message()}"
+                    errorMessage.value = "Failed to fetch user: ${userResponse.code()} - ${userResponse.message()}"
                 }
             } catch (e: Exception) {
                 errorMessage.value = "Error fetching user: ${e.localizedMessage}"
@@ -91,7 +115,6 @@ class HomeScreenActivity : ComponentActivity() {
         }
     }
 
-    // Function to fetch products from the backend
     private fun fetchProduits() {
         isLoading.value = true
         lifecycleScope.launch(Dispatchers.IO) {
@@ -110,56 +133,83 @@ class HomeScreenActivity : ComponentActivity() {
         }
     }
 
+//    private fun navigateToMaps() {
+//        // Navigate to a Maps Activity or Screen
+//        showMapDialog = true
+//        if (showMapDialog) {
+//            MapDialog(
+//                onDismiss = { showMapDialog = false },
+//                onLocationSelected = { selectedLocation ->
+//                    Log.e("TAG", "Selected location: $selectedLocation")
+//                    showMapDialog = false
+//                }
+//            )
+//        }
+//    }
 
-    // Bottom Navigation Bar
+    private fun handleMicrophone() {
+        // Implement Microphone functionality here
+        // Example: Show a toast or start a recording activity
+    }
+
     @Composable
-    fun BottomNavigationBar(navController: NavHostController) {
-        val items = listOf(
-            BottomNavItem.Home,
-            BottomNavItem.Favorites,
-            BottomNavItem.Settings,
-            BottomNavItem.Profile,
-            BottomNavItem.Cart
-
-
-            )
-
-        NavigationBar(
-            containerColor = Color(0xFFF7EEE2),
-            tonalElevation = 0.dp, // Remove elevation for a cleaner look
-            modifier = Modifier.height(56.dp) // Adjust the height of the navigation bar
+    fun FloatingActionMenu(
+        isFabMenuOpen: MutableState<Boolean>,
+        onFabClick: () -> Unit,
+        onActionClick: (String) -> Unit
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.BottomEnd
         ) {
-            items.forEach { item ->
-                NavigationBarItem(
-                    icon = {
-                        Icon(
-                            imageVector = item.icon,
-                            contentDescription = item.title,
-                            modifier = Modifier.size(20.dp), // Adjust icon size
-                            tint = Color(0xFF874F2C)
-                        )
-                    },
-                    label = {
-                        Text(
-                            text = item.title,
-                            color = Color(0xFF874F2C),
-                            style = MaterialTheme.typography.labelSmall // Smaller text style
-                        )
-                    },
-                    selected = false,
-                    onClick = {
-                        navController.navigate(item.route) {
-                            popUpTo(navController.graph.startDestinationId) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    }
+            AnimatedVisibility(
+                visible = isFabMenuOpen.value,
+                enter = fadeIn() + slideInVertically { it },
+                exit = fadeOut() + slideOutVertically { it }
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.padding(end = 16.dp, bottom = 72.dp)
+                ) {
+                    ActionButton(Icons.Default.ShoppingCart, "Cart") { onActionClick("Cart") }
+                    ActionButton(Icons.Default.Person, "Profile") { onActionClick("Profile") }
+                    ActionButton(Icons.Default.Favorite, "Favorites") { onActionClick("Favorites") }
+                    ActionButton(Icons.Default.Map, "Maps") { onActionClick("Maps") }
+                    ActionButton(Icons.Default.Mic, "Microphone") { onActionClick("Microphone") }
+                }
+            }
+
+            FloatingActionButton(
+                onClick = onFabClick,
+                shape = CircleShape,
+                containerColor = Color(0xFF874F2C)
+            ) {
+                Icon(
+                    imageVector = if (isFabMenuOpen.value) Icons.Default.Close else Icons.Default.Menu,
+                    contentDescription = "FAB Menu",
+                    tint = Color.White
                 )
             }
         }
     }
 
-    // Navigation Host
+    @Composable
+    fun ActionButton(icon: androidx.compose.ui.graphics.vector.ImageVector, description: String, onClick: () -> Unit) {
+        FloatingActionButton(
+            onClick = onClick,
+            shape = CircleShape,
+            modifier = Modifier.size(48.dp),
+            containerColor = Color(0xFFF7EEE2)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = description,
+                tint = Color(0xFF874F2C)
+            )
+        }
+    }
+
     @Composable
     fun NavigationHost(navController: NavHostController) {
         NavHost(
@@ -172,7 +222,7 @@ class HomeScreenActivity : ComponentActivity() {
                     isLoading = isLoading.value,
                     errorMessage = errorMessage.value,
                     loggedInUser = loggedInUser.value ?: UserData(
-                        id ="",
+                        id = "",
                         nom = "Unknown",
                         prenom = "User",
                         email = "unknown@example.com",
@@ -185,10 +235,8 @@ class HomeScreenActivity : ComponentActivity() {
                 val context = LocalContext.current
                 LaunchedEffect(Unit) {
                     val intent = Intent(context, FavoriteActivity::class.java)
-                    context.startActivity(intent)            }
-            }
-            composable(BottomNavItem.Settings.route) {
-                Text("Settings Screen", style = MaterialTheme.typography.headlineLarge)
+                    context.startActivity(intent)
+                }
             }
             composable(BottomNavItem.Profile.route) {
                 val context = LocalContext.current
@@ -207,7 +255,6 @@ class HomeScreenActivity : ComponentActivity() {
         }
     }
 
-    // Data class for bottom navigation items
     data class BottomNavItem(
         val route: String,
         val icon: androidx.compose.ui.graphics.vector.ImageVector,
@@ -216,10 +263,25 @@ class HomeScreenActivity : ComponentActivity() {
         companion object {
             val Home = BottomNavItem("home", Icons.Default.Home, "Home")
             val Favorites = BottomNavItem("favorites", Icons.Default.Favorite, "Favorites")
-            val Settings = BottomNavItem("settings", Icons.Default.Settings, "Settings")
             val Profile = BottomNavItem("profile", Icons.Default.Person, "Profile")
-            val Cart=BottomNavItem("cart",Icons.Default.ShoppingCart,"Cat")
+            val Cart = BottomNavItem("cart", Icons.Default.ShoppingCart, "Cart")
         }
     }
-}
+    private fun navigatefavorites() {
+        val intent = Intent(this, FavoriteActivity::class.java)
+        startActivity(intent)
+    }
+    private fun navigateprofile() {
+        val intent = Intent(this, ProfileActivity::class.java)
+        startActivity(intent)
+    }
+    private fun navigateCart() {
+        val intent = Intent(this, CartActivity::class.java)
+        startActivity(intent)
+    }
 
+    private fun navigateToAIVoiceActivity() {
+        val intent = Intent(this, VoiceToSearchActivity::class.java)
+        startActivity(intent)
+    }
+}

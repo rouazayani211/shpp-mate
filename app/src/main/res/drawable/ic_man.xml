@@ -3,7 +3,12 @@
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
+    <!-- Tête de la personne -->
     <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M12,12a4,4 0,1 1,0 -8a4,4 0,1 1,0 8zM12,14c-5.33,0 -8,2.67 -8,8h16c0,-5.33 -2.67,-8 -8,-8z" />
+        android:fillColor="#000000"
+        android:pathData="M12,12a4,4 0,1 1,0 -8a4,4 0,1 1,0 8z" />
+    <!-- Corps de la personne -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M12,14c-5.33,0 -8,2.67 -8,8h16c0,-5.33 -2.67,-8 -8,-8z" />
 </vector>

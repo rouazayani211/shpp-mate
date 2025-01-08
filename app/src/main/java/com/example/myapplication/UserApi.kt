@@ -52,14 +52,14 @@ interface UserApi {
     suspend fun getUserInfo(@Query("email") email: String): Response<UserData>
 
 
-    @PUT("auth/update/{id}")
+    @PUT("users/{id}")
     suspend fun updateAccount(
         @Path("id") id: String,
         @Body updateUserRequest: UpdateUserRequest
     ): Response<UserData>
 
     @Multipart
-    @PUT("auth/update/{id}")
+    @PUT("users/{id}")
     suspend fun updateAccountWithImage(
         @Path("id") id: String,
         @Body user : UserData,
